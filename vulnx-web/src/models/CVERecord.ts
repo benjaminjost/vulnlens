@@ -1,4 +1,3 @@
-// Shared class definition for CVE entries
 export class CVERecord {
   cveId: string;
   name: string;
@@ -62,17 +61,14 @@ export class CVERecord {
     this.hasPoC = typeof is_poc === 'boolean' ? is_poc : false;
     this.publishedAt = cve_created_at ? new Date(cve_created_at as string) : new Date();
     this.updatedAt = cve_updated_at ? new Date(cve_updated_at as string) : new Date();
-    
-    // Extract product and vendor from affected_products array
+
     const affectedProductsArray = Array.isArray(affected_products) ? affected_products : [];
     const firstProduct = affectedProductsArray.length > 0 ? affectedProductsArray[0] as Record<string, unknown> : null;
     this.product = firstProduct && typeof firstProduct.product === 'string' ? firstProduct.product : null;
     this.vendor = firstProduct && typeof firstProduct.vendor === 'string' ? firstProduct.vendor : null;
-    
-    // Extract CVSS vector string
+
     this.vector = typeof cvss_metrics === 'string' ? cvss_metrics : null;
-    
-    // Extract weakness names
+
     const weaknessesArray = Array.isArray(weaknesses) ? weaknesses : [];
     this.weaknesses = weaknessesArray.map((w: any) => {
       if (typeof w === 'object' && w !== null && typeof w.cwe_name === 'string') {
@@ -80,8 +76,7 @@ export class CVERecord {
       }
       return String(w);
     });
-    
-    // Extract citation URLs
+
     const citationsArray = Array.isArray(citations) ? citations : [];
     this.references = citationsArray.map((c: any) => {
       if (typeof c === 'object' && c !== null && typeof c.url === 'string') {
@@ -89,11 +84,9 @@ export class CVERecord {
       }
       return String(c);
     });
-    
-    // Extract remediation as patch info
+
     this.patches = typeof remediation === 'string' ? [remediation] : [];
-    
-    // Extract PoC URLs
+
     const pocsArray = Array.isArray(pocs) ? pocs : [];
     this.pocUrls = pocsArray.map((p: any) => {
       if (typeof p === 'object' && p !== null && typeof p.url === 'string') {
@@ -101,8 +94,7 @@ export class CVERecord {
       }
       return String(p);
     });
-    
-    // Additional fields
+
     this.impact = typeof impact === 'string' ? impact : null;
     this.remediation = typeof remediation === 'string' ? remediation : null;
     this.requirements = typeof requirements === 'string' ? requirements : null;

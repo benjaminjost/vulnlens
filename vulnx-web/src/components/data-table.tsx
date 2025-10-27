@@ -1,34 +1,34 @@
 "use client"
 
 import {
-    ColumnDef,
-    ExpandedState,
-    flexRender,
-    getCoreRowModel,
-    getExpandedRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    PaginationState,
-    SortingState,
-    useReactTable,
+  ColumnDef,
+  ExpandedState,
+  flexRender,
+  getCoreRowModel,
+  getExpandedRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  PaginationState,
+  SortingState,
+  useReactTable,
 } from "@tanstack/react-table"
 import * as React from "react"
 
 import { Button } from "@/components/ui/button"
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select"
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table"
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 
@@ -147,7 +147,7 @@ export function DataTable<TData, TValue>({
           )}
         </TableBody>
       </Table>
-      
+
       {/* Pagination Controls */}
       <div className="flex items-center justify-between px-4 py-4 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50">
         <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
@@ -156,7 +156,7 @@ export function DataTable<TData, TValue>({
             {table.getPageCount()} ({table.getFilteredRowModel().rows.length} results)
           </span>
         </div>
-        
+
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm text-neutral-600 dark:text-neutral-400">Show</span>
@@ -178,40 +178,40 @@ export function DataTable<TData, TValue>({
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronsLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
-          >
-            <ChevronsRight className="h-4 w-4" />
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.setPageIndex(0)}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+              disabled={!table.getCanNextPage()}
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>

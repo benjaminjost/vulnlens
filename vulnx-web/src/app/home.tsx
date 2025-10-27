@@ -18,26 +18,22 @@ export default function MainPage() {
   const [apiKey, setApiKey] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showApiBanner, setShowApiBanner] = useState(false);
-  const [apiKeyConnected, setApiKeyConnected] = useState(false);
   const [apiKeySaved, setApiKeySaved] = useState(false);
   const [filterInfo, setFilterInfo] = useState<Array<{ field: string; description: string; examples: string[]; enum_values?: string[] }>>([]);
   const [loadingFilters, setLoadingFilters] = useState(false);
   const [filterSearchTerm, setFilterSearchTerm] = useState('');
 
   useEffect(() => {
-    // Check localStorage for API key on mount
     const storedKey = localStorage.getItem('vulnxApiKey');
     const bannerDismissed = localStorage.getItem('vulnxBannerDismissed');
     const storedFilters = localStorage.getItem('vulnxFilterInfo');
 
     if (storedKey) {
       setApiKey(storedKey);
-      setApiKeyConnected(true);
     } else if (!bannerDismissed) {
       setShowApiBanner(true);
     }
 
-    // Load filters from localStorage or fetch them
     if (storedFilters) {
       try {
         setFilterInfo(JSON.parse(storedFilters));
@@ -57,18 +53,13 @@ export default function MainPage() {
         "Content-Type": "application/json",
       };
 
-      if (apiKey) {
-        headers["X-API-Key"] = apiKey;
-      }
-
       const response = await fetch('https://api.projectdiscovery.io/v2/vulnerability/filters', {
         method: "GET",
         headers: headers,
       });
-      
+
       if (response.ok) {
         const data = await response.json();
-        // Filter to only include description and examples, exclude items without examples
         const filteredData = data
           .filter((item: any) => item.examples && item.examples.length > 0)
           .map((item: any) => ({
@@ -128,9 +119,6 @@ export default function MainPage() {
 
       const data = await response.json();
 
-      //! remove me
-      console.log('API Response:', data);
-
       if (data && typeof data === 'object' && Array.isArray(data.results)) {
         const cveRecords = data.results.map((item: any) => new CVERecord(item));
         setResults(cveRecords);
@@ -151,11 +139,9 @@ export default function MainPage() {
   const handleApiKeySave = () => {
     if (apiKey.trim()) {
       localStorage.setItem('vulnxApiKey', apiKey);
-      setApiKeyConnected(true);
       setShowApiBanner(false);
       setApiKeySaved(true);
-      
-      // Hide success message after 3 seconds
+
       setTimeout(() => {
         setApiKeySaved(false);
       }, 3000);
@@ -195,43 +181,27 @@ export default function MainPage() {
             <TabsContent value="explore" className="space-y-6">
               {/* API Key Warning Banner */}
               {showApiBanner && (
-                <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
-                  <CardContent className="pt-6">
-                    <div className="flex items-start gap-4">
-                      <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-amber-900 dark:text-amber-100">API Key Required</h4>
-                        <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                          Please configure your API key to access vulnerability data.
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setShowApiBanner(false);
-                            // Switch to settings tab
-                            const settingsTab = document.querySelector('[value="settings"]') as HTMLButtonElement;
-                            if (settingsTab) settingsTab.click();
-                          }}
-                        >
-                          Set up now
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setShowApiBanner(false);
-                            localStorage.setItem('vulnxBannerDismissed', 'true');
-                          }}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
+                <div className="bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-900 rounded-lg p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 flex-1">
+                      <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500 flex-shrink-0" />
+                      <p className="text-sm text-amber-900 dark:text-amber-100">
+                        Please configure your API key in the settings tab to access vulnerability data.
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 hover:bg-amber-100 dark:hover:bg-amber-900"
+                      onClick={() => {
+                        setShowApiBanner(false);
+                        localStorage.setItem('vulnxBannerDismissed', 'true');
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               )}
 
               {/* Search Section */}
@@ -251,7 +221,7 @@ export default function MainPage() {
                           onKeyDown={(e) => e.key === 'Enter' && handleSearch(e)}
                         />
                       </div>
-                      
+
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
@@ -261,7 +231,7 @@ export default function MainPage() {
                           <Info className="h-4 w-4" />
                           Query Info
                         </Button>
-                        
+
                         <Button
                           onClick={handleSearch}
                           disabled={loading || !query.trim()}
@@ -296,7 +266,7 @@ export default function MainPage() {
                             </div>
                           </div>
                         </div>
-                        
+
                         {loadingFilters ? (
                           <div className="flex items-center justify-center py-8">
                             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#5E81AC]"></div>
@@ -307,62 +277,62 @@ export default function MainPage() {
                               .filter(filter => {
                                 if (!filterSearchTerm.trim()) return true;
                                 const searchLower = filterSearchTerm.toLowerCase();
-                                return filter.field.toLowerCase().includes(searchLower) || 
-                                       filter.description.toLowerCase().includes(searchLower);
+                                return filter.field.toLowerCase().includes(searchLower) ||
+                                  filter.description.toLowerCase().includes(searchLower);
                               })
                               .length === 0 ? (
-                                <div className="text-center py-8">
-                                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                                    No filters match &quot;{filterSearchTerm}&quot;
-                                  </p>
-                                </div>
-                              ) : (
-                                filterInfo
-                                  .filter(filter => {
-                                    if (!filterSearchTerm.trim()) return true;
-                                    const searchLower = filterSearchTerm.toLowerCase();
-                                    return filter.field.toLowerCase().includes(searchLower) || 
-                                           filter.description.toLowerCase().includes(searchLower);
-                                  })
-                                  .map((filter, idx) => (
-                              <div key={idx} className="bg-white dark:bg-neutral-950 rounded-lg border border-neutral-200 dark:border-neutral-800 p-3">
-                                <div className="mb-2">
-                                  <code className="text-sm font-semibold text-[#5E81AC] dark:text-[#88C0D0]">{filter.field}</code>
-                                  <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1 leading-relaxed">{filter.description}</p>
-                                </div>
-                                
-                                {filter.enum_values && filter.enum_values.length > 0 && (
-                                  <div className="mb-2">
-                                    <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1.5">Allowed values:</p>
-                                    <div className="flex flex-wrap gap-1.5">
-                                      {filter.enum_values.map((enumVal, enumIdx) => (
-                                        <span 
-                                          key={enumIdx} 
-                                          className="inline-flex items-center px-2 py-1 rounded-md text-xs bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-mono border border-neutral-200 dark:border-neutral-700"
-                                        >
-                                          {enumVal}
-                                        </span>
-                                      ))}
+                              <div className="text-center py-8">
+                                <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                                  No filters match &quot;{filterSearchTerm}&quot;
+                                </p>
+                              </div>
+                            ) : (
+                              filterInfo
+                                .filter(filter => {
+                                  if (!filterSearchTerm.trim()) return true;
+                                  const searchLower = filterSearchTerm.toLowerCase();
+                                  return filter.field.toLowerCase().includes(searchLower) ||
+                                    filter.description.toLowerCase().includes(searchLower);
+                                })
+                                .map((filter, idx) => (
+                                  <div key={idx} className="bg-white dark:bg-neutral-950 rounded-lg border border-neutral-200 dark:border-neutral-800 p-3">
+                                    <div className="mb-2">
+                                      <code className="text-sm font-semibold text-[#5E81AC] dark:text-[#88C0D0]">{filter.field}</code>
+                                      <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1 leading-relaxed">{filter.description}</p>
+                                    </div>
+
+                                    {filter.enum_values && filter.enum_values.length > 0 && (
+                                      <div className="mb-2">
+                                        <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1.5">Allowed values:</p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {filter.enum_values.map((enumVal, enumIdx) => (
+                                            <span
+                                              key={enumIdx}
+                                              className="inline-flex items-center px-2 py-1 rounded-md text-xs bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-mono border border-neutral-200 dark:border-neutral-700"
+                                            >
+                                              {enumVal}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    <div>
+                                      <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1.5">Examples:</p>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {filter.examples.map((example, exIdx) => (
+                                          <button
+                                            key={exIdx}
+                                            onClick={() => setQuery(example)}
+                                            className="inline-flex items-center px-2 py-1 rounded-md text-xs bg-[#5E81AC] hover:bg-[#4C6A94] text-white font-mono transition-colors cursor-pointer"
+                                          >
+                                            {example}
+                                          </button>
+                                        ))}
+                                      </div>
                                     </div>
                                   </div>
-                                )}
-                                
-                                <div>
-                                  <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-1.5">Examples:</p>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {filter.examples.map((example, exIdx) => (
-                                      <button
-                                        key={exIdx} 
-                                        onClick={() => setQuery(example)}
-                                        className="inline-flex items-center px-2 py-1 rounded-md text-xs bg-[#5E81AC] hover:bg-[#4C6A94] text-white font-mono transition-colors cursor-pointer"
-                                      >
-                                        {example}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-                            ))
+                                ))
                             )}
                           </div>
                         )}
@@ -418,300 +388,300 @@ export default function MainPage() {
                     columns={columns}
                     data={results}
                     renderSubComponent={({ row }) => {
-                  const result = row.original as CVERecord;
-                  return (
-                    <div className="space-y-4">
-                      {/* Description */}
-                      <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                        <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Description</h4>
-                        <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                          {result.description}
-                        </p>
-                      </div>
-
-                      {/* Impact & Remediation */}
-                      {(result.impact || result.remediation || result.requirements) && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {result.impact && (
-                            <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                              <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Impact</h4>
-                              <p className="text-sm text-neutral-900 dark:text-neutral-100 leading-relaxed">{result.impact}</p>
-                            </div>
-                          )}
-                          {result.remediation && (
-                            <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                              <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Remediation</h4>
-                              <p className="text-sm text-neutral-900 dark:text-neutral-100 leading-relaxed">{result.remediation}</p>
-                            </div>
-                          )}
-                          {result.requirements && (
-                            <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700 md:col-span-2">
-                              <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Requirements</h4>
-                              <p className="text-sm text-neutral-900 dark:text-neutral-100 leading-relaxed">{result.requirements}</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Details Grid */}
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {result.vendor && (
+                      const result = row.original as CVERecord;
+                      return (
+                        <div className="space-y-4">
+                          {/* Description */}
                           <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                            <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Vendor</h4>
-                            <p className="text-sm text-neutral-900 dark:text-neutral-100 font-medium">{result.vendor}</p>
-                          </div>
-                        )}
-                        {result.product && (
-                          <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                            <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Product</h4>
-                            <p className="text-sm text-neutral-900 dark:text-neutral-100 font-medium">{result.product}</p>
-                          </div>
-                        )}
-                        {result.vulnerabilityType && (
-                          <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                            <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Type</h4>
-                            <p className="text-sm text-neutral-900 dark:text-neutral-100 font-medium capitalize">{result.vulnerabilityType.replace(/_/g, ' ')}</p>
-                          </div>
-                        )}
-                        {result.publishedAt && (
-                          <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                            <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Published</h4>
-                            <p className="text-sm text-neutral-900 dark:text-neutral-100 font-medium">
-                              {new Date(result.publishedAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                            <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Description</h4>
+                            <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                              {result.description}
                             </p>
                           </div>
-                        )}
-                        {result.updatedAt && (
-                          <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                            <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Updated</h4>
-                            <p className="text-sm text-neutral-900 dark:text-neutral-100 font-medium">
-                              {new Date(result.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                            </p>
+
+                          {/* Impact & Remediation */}
+                          {(result.impact || result.remediation || result.requirements) && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {result.impact && (
+                                <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                                  <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Impact</h4>
+                                  <p className="text-sm text-neutral-900 dark:text-neutral-100 leading-relaxed">{result.impact}</p>
+                                </div>
+                              )}
+                              {result.remediation && (
+                                <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                                  <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Remediation</h4>
+                                  <p className="text-sm text-neutral-900 dark:text-neutral-100 leading-relaxed">{result.remediation}</p>
+                                </div>
+                              )}
+                              {result.requirements && (
+                                <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700 md:col-span-2">
+                                  <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Requirements</h4>
+                                  <p className="text-sm text-neutral-900 dark:text-neutral-100 leading-relaxed">{result.requirements}</p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Details Grid */}
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {result.vendor && (
+                              <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                                <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Vendor</h4>
+                                <p className="text-sm text-neutral-900 dark:text-neutral-100 font-medium">{result.vendor}</p>
+                              </div>
+                            )}
+                            {result.product && (
+                              <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                                <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Product</h4>
+                                <p className="text-sm text-neutral-900 dark:text-neutral-100 font-medium">{result.product}</p>
+                              </div>
+                            )}
+                            {result.vulnerabilityType && (
+                              <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                                <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Type</h4>
+                                <p className="text-sm text-neutral-900 dark:text-neutral-100 font-medium capitalize">{result.vulnerabilityType.replace(/_/g, ' ')}</p>
+                              </div>
+                            )}
+                            {result.publishedAt && (
+                              <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                                <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Published</h4>
+                                <p className="text-sm text-neutral-900 dark:text-neutral-100 font-medium">
+                                  {new Date(result.publishedAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                </p>
+                              </div>
+                            )}
+                            {result.updatedAt && (
+                              <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                                <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Updated</h4>
+                                <p className="text-sm text-neutral-900 dark:text-neutral-100 font-medium">
+                                  {new Date(result.updatedAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                </p>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
 
-                      {/* Security Attributes */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                          <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Patch Available</h4>
-                          <p className="text-sm text-neutral-900 dark:text-neutral-100 font-semibold">{result.isPatchAvailable ? '✓ Yes' : '✗ No'}</p>
-                        </div>
-                        <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                          <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Attributes</h4>
-                          <div className="flex flex-wrap gap-1">
-                            {result.isExploitSeen && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-[#BF616A] text-white">Exploit Seen</span>}
-                            {result.isRemote && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-[#5E81AC] text-white">Remote</span>}
-                            {result.isAuth && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-[#D08770] text-white">Auth</span>}
-                            {result.isTemplate && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-[#A3BE8C] text-white">Template</span>}
-                            {!result.isExploitSeen && !result.isRemote && !result.isAuth && !result.isTemplate && <span className="text-xs text-neutral-500">None</span>}
+                          {/* Security Attributes */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                              <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Patch Available</h4>
+                              <p className="text-sm text-neutral-900 dark:text-neutral-100 font-semibold">{result.isPatchAvailable ? '✓ Yes' : '✗ No'}</p>
+                            </div>
+                            <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                              <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Attributes</h4>
+                              <div className="flex flex-wrap gap-1">
+                                {result.isExploitSeen && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-[#BF616A] text-white">Exploit Seen</span>}
+                                {result.isRemote && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-[#5E81AC] text-white">Remote</span>}
+                                {result.isAuth && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-[#D08770] text-white">Auth</span>}
+                                {result.isTemplate && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-[#A3BE8C] text-white">Template</span>}
+                                {!result.isExploitSeen && !result.isRemote && !result.isAuth && !result.isTemplate && <span className="text-xs text-neutral-500">None</span>}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
 
-                      {result.vector && (
-                        <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                          <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Attack Vector (CVSS)</h4>
-                          <p className="text-sm text-neutral-900 dark:text-neutral-100 font-mono">{result.vector}</p>
-                        </div>
-                      )}
+                          {result.vector && (
+                            <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                              <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Attack Vector (CVSS)</h4>
+                              <p className="text-sm text-neutral-900 dark:text-neutral-100 font-mono">{result.vector}</p>
+                            </div>
+                          )}
 
-                      {/* Weaknesses */}
-                      {result.weaknesses.length > 0 && (
-                        <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                          <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Weaknesses (CWE)</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {result.weaknesses.map((weakness, idx) => (
-                              <span key={idx} className="inline-flex items-center px-3 py-1 rounded-md text-xs font-semibold bg-[#EBCB8B] text-[#5A4A1F] dark:bg-[#EBCB8B] dark:text-[#2D250F]">
-                                {weakness}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                          {/* Weaknesses */}
+                          {result.weaknesses.length > 0 && (
+                            <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                              <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Weaknesses (CWE)</h4>
+                              <div className="flex flex-wrap gap-2">
+                                {result.weaknesses.map((weakness, idx) => (
+                                  <span key={idx} className="inline-flex items-center px-3 py-1 rounded-md text-xs font-semibold bg-[#EBCB8B] text-[#5A4A1F] dark:bg-[#EBCB8B] dark:text-[#2D250F]">
+                                    {weakness}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
 
-                      {/* PoC URLs */}
-                      {result.pocUrls.length > 0 && (
-                        <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                          <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-3">Proof of Concept (PoC)</h4>
-                          <ul className="space-y-2">
-                            {result.pocUrls.map((poc, idx) => (
-                              <li key={idx} className="flex items-start gap-2">
-                                <svg className="w-4 h-4 text-[#BF616A] mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                          {/* PoC URLs */}
+                          {result.pocUrls.length > 0 && (
+                            <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                              <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-3">Proof of Concept (PoC)</h4>
+                              <ul className="space-y-2">
+                                {result.pocUrls.map((poc, idx) => (
+                                  <li key={idx} className="flex items-start gap-2">
+                                    <svg className="w-4 h-4 text-[#BF616A] mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    <a
+                                      href={poc}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-[#5E81AC] dark:text-[#5E81AC] hover:text-[#4C6A94] dark:hover:text-[#88C0D0] hover:underline break-all font-medium transition-colors"
+                                    >
+                                      {poc}
+                                    </a>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* References */}
+                          {result.references.length > 0 && (
+                            <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                              <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-3">References</h4>
+                              <ul className="space-y-2">
+                                {result.references.slice(0, 5).map((ref, idx) => (
+                                  <li key={idx} className="flex items-start gap-2">
+                                    <svg className="w-4 h-4 text-[#5E81AC] mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                    <a
+                                      href={ref}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-[#5E81AC] dark:text-[#5E81AC] hover:text-[#4C6A94] dark:hover:text-[#88C0D0] hover:underline break-all font-medium transition-colors"
+                                    >
+                                      {ref}
+                                    </a>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Nuclei Template URL */}
+                          {result.isTemplate && result.uri && (
+                            <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                              <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-3">Nuclei Template</h4>
+                              <div className="flex items-start gap-2">
+                                <svg className="w-4 h-4 text-[#A3BE8C] mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                                 </svg>
-                                <a 
-                                  href={poc} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
+                                <a
+                                  href={`https://github.com/projectdiscovery/nuclei-templates/blob/main/${result.uri}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
                                   className="text-sm text-[#5E81AC] dark:text-[#5E81AC] hover:text-[#4C6A94] dark:hover:text-[#88C0D0] hover:underline break-all font-medium transition-colors"
                                 >
-                                  {poc}
+                                  {`https://github.com/projectdiscovery/nuclei-templates/blob/main/${result.uri}`}
                                 </a>
-                              </li>
-                            ))}
-                          </ul>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      )}
-
-                      {/* References */}
-                      {result.references.length > 0 && (
-                        <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                          <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-3">References</h4>
-                          <ul className="space-y-2">
-                            {result.references.slice(0, 5).map((ref, idx) => (
-                              <li key={idx} className="flex items-start gap-2">
-                                <svg className="w-4 h-4 text-[#5E81AC] mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                </svg>
-                                <a 
-                                  href={ref} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
-                                  className="text-sm text-[#5E81AC] dark:text-[#5E81AC] hover:text-[#4C6A94] dark:hover:text-[#88C0D0] hover:underline break-all font-medium transition-colors"
-                                >
-                                  {ref}
-                                </a>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {/* Nuclei Template URL */}
-                      {result.isTemplate && result.uri && (
-                        <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
-                          <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-3">Nuclei Template</h4>
-                          <div className="flex items-start gap-2">
-                            <svg className="w-4 h-4 text-[#A3BE8C] mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                            </svg>
-                            <a 
-                              href={`https://github.com/projectdiscovery/nuclei-templates/blob/main/${result.uri}`}
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="text-sm text-[#5E81AC] dark:text-[#5E81AC] hover:text-[#4C6A94] dark:hover:text-[#88C0D0] hover:underline break-all font-medium transition-colors"
-                            >
-                              {`https://github.com/projectdiscovery/nuclei-templates/blob/main/${result.uri}`}
-                            </a>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                }}
-              />
-            )}
+                      );
+                    }}
+                  />
+                )}
               </div>
-              </TabsContent>
+            </TabsContent>
 
-              {/* Settings Tab */}
-              <TabsContent value="settings" className="space-y-6">
-                <Card className="border-neutral-200 dark:border-neutral-800">
-                  <CardHeader className="pb-4">
-                    <div className="space-y-1.5">
-                      <CardTitle className="text-xl">API Configuration</CardTitle>
-                      <CardDescription className="text-sm">
-                        Connect your ProjectDiscovery API to access vulnerability data
-                      </CardDescription>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-5">
-                    <div className="space-y-3">
-                      <label htmlFor="apiKeyInput" className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                        API Key
-                      </label>
-                      <Input
-                        id="apiKeyInput"
-                        type="password"
-                        placeholder="pd_xxxxxxxxxxxxxxxxxxxxxxxx"
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                        className="font-mono text-sm"
-                      />
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                        Get your API key from{' '}
-                        <a 
-                          href="https://cloud.projectdiscovery.io" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-[#5E81AC] dark:text-[#5E81AC] hover:text-[#4C6A94] dark:hover:text-[#88C0D0] hover:underline font-medium transition-colors"
-                        >
-                          ProjectDiscovery Cloud
-                        </a>
+            {/* Settings Tab */}
+            <TabsContent value="settings" className="space-y-6">
+              <Card className="border-neutral-200 dark:border-neutral-800">
+                <CardHeader className="pb-4">
+                  <div className="space-y-1.5">
+                    <CardTitle className="text-xl">API Configuration</CardTitle>
+                    <CardDescription className="text-sm">
+                      Connect your ProjectDiscovery API to access vulnerability data
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  <div className="space-y-3">
+                    <label htmlFor="apiKeyInput" className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                      API Key
+                    </label>
+                    <Input
+                      id="apiKeyInput"
+                      type="password"
+                      placeholder="xxxxxxxxxxxxxxxxxxxxxxxx"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      className="font-mono text-sm"
+                    />
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                      Get your API key from{' '}
+                      <a
+                        href="https://cloud.projectdiscovery.io"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#5E81AC] dark:text-[#5E81AC] hover:text-[#4C6A94] dark:hover:text-[#88C0D0] hover:underline font-medium transition-colors"
+                      >
+                        ProjectDiscovery Cloud
+                      </a>
+                    </p>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900">
+                    <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                        Your data is secure
+                      </p>
+                      <p className="text-xs text-blue-900 dark:text-blue-200 leading-relaxed">
+                        Your API key is stored locally in your browser and is never transmitted to our servers. All API requests are made directly to ProjectDiscovery.
                       </p>
                     </div>
-                    
-                    <div className="flex items-start gap-3 p-4 rounded-lg bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900">
-                      <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
-                          Your data is secure
-                        </p>
-                        <p className="text-xs text-blue-900 dark:text-blue-200 leading-relaxed">
-                          Your API key is stored locally in your browser and is never transmitted to our servers. All API requests are made directly to ProjectDiscovery.
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {apiKeySaved && (
-                      <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900">
-                        <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                        <p className="text-sm text-emerald-700 dark:text-emerald-300 font-medium">
-                          API key saved successfully!
-                        </p>
-                      </div>
-                    )}
-                    
-                    <Button onClick={handleApiKeySave} className="w-full bg-[#5E81AC] hover:bg-[#4C6A94] text-white">
-                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                      Save Configuration
-                    </Button>
-                  </CardContent>
-                </Card>
+                  </div>
 
-                {/* Query Filters Management */}
-                <Card className="border-neutral-200 dark:border-neutral-800">
-                  <CardHeader className="pb-4">
-                    <div className="space-y-1.5">
-                      <CardTitle className="text-xl">Query Filters</CardTitle>
-                      <CardDescription className="text-sm">
-                        Manage available query filters and syntax information
-                      </CardDescription>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-start gap-3 p-4 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700">
-                      <Info className="h-5 w-5 text-neutral-600 dark:text-neutral-400 flex-shrink-0 mt-0.5" />
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                          Filter information cached locally
-                        </p>
-                        <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                          Query filters are fetched from the API and stored in your browser for quick access. Click refresh to update with the latest filters.
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <Button 
-                      onClick={fetchFilterInfo} 
-                      disabled={loadingFilters}
-                      variant="outline" 
-                      className="w-full"
-                    >
-                      <Filter className="h-4 w-4 mr-2" />
-                      {loadingFilters ? 'Refreshing...' : 'Refresh Filter List'}
-                    </Button>
-                    
-                    {filterInfo.length > 0 && (
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
-                        {filterInfo.length} filters available
+                  {apiKeySaved && (
+                    <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                      <p className="text-sm text-emerald-700 dark:text-emerald-300 font-medium">
+                        API key saved successfully!
                       </p>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+                    </div>
+                  )}
+
+                  <Button onClick={handleApiKeySave} className="w-full bg-[#5E81AC] hover:bg-[#4C6A94] text-white">
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Save Configuration
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Query Filters Management */}
+              <Card className="border-neutral-200 dark:border-neutral-800">
+                <CardHeader className="pb-4">
+                  <div className="space-y-1.5">
+                    <CardTitle className="text-xl">Query Filters</CardTitle>
+                    <CardDescription className="text-sm">
+                      Manage available query filters and syntax information
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-start gap-3 p-4 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700">
+                    <Info className="h-5 w-5 text-neutral-600 dark:text-neutral-400 flex-shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                        Filter information cached locally
+                      </p>
+                      <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                        Query filters are fetched from the API and stored in your browser for quick access. Click refresh to update with the latest filters.
+                      </p>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={fetchFilterInfo}
+                    disabled={loadingFilters}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Filter className="h-4 w-4 mr-2" />
+                    {loadingFilters ? 'Refreshing...' : 'Refresh Filter List'}
+                  </Button>
+
+                  {filterInfo.length > 0 && (
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
+                      {filterInfo.length} filters available
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
