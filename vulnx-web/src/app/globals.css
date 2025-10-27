@@ -2,22 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Modern Minimal Design System */
+/* Modern Minimal Design System - Neutral & Nord Blue */
 :root {
   --color-bg: #fafafa;
   --color-surface: #ffffff;
-  --color-primary: #0a0a0a;
-  --color-secondary: #6b7280;
-  --color-accent: #2563eb;
-  --color-border: #e5e7eb;
-  --color-border-hover: #d1d5db;
-  --color-text: #111827;
-  --color-text-secondary: #6b7280;
-  --color-text-muted: #9ca3af;
+  --color-primary: #5E81AC; /* Nord Frost Blue */
+  --color-secondary: #81A1C1; /* Nord Frost Light Blue */
+  --color-accent: #88C0D0; /* Nord Frost Cyan */
+  --color-accent-hover: #8FBCBB; /* Nord Frost Teal */
+  --color-border: #e5e5e5;
+  --color-border-hover: #d4d4d4;
+  --color-text: #171717;
+  --color-text-secondary: #525252;
+  --color-text-muted: #737373;
   
-  --color-critical: #dc2626;
-  --color-high: #ea580c;
-  --color-success: #16a34a;
+  --color-critical: #BF616A; /* Nord Aurora Red */
+  --color-high: #D08770; /* Nord Aurora Orange */
+  --color-success: #A3BE8C; /* Nord Aurora Green */
   
   --radius: 12px;
   --radius-sm: 8px;
@@ -643,14 +644,14 @@ body {
 }
 
 .footer-links a {
-  color: var(--color-accent);
+  color: var(--color-primary);
   text-decoration: none;
   font-weight: 500;
   transition: var(--transition);
 }
 
 .footer-links a:hover {
-  color: var(--color-primary);
+  color: #4C6A94;
   text-decoration: underline;
 }
 

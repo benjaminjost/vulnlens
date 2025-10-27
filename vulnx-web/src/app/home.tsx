@@ -20,11 +20,14 @@ export default function MainPage() {
   const [showApiBanner, setShowApiBanner] = useState(false);
   const [apiKeyConnected, setApiKeyConnected] = useState(false);
   const [apiKeySaved, setApiKeySaved] = useState(false);
+  const [filterInfo, setFilterInfo] = useState<Array<{ field: string; description: string; examples: string[]; enum_values?: string[] }>>([]);
+  const [loadingFilters, setLoadingFilters] = useState(false);
 
   useEffect(() => {
     // Check localStorage for API key on mount
     const storedKey = localStorage.getItem('vulnxApiKey');
     const bannerDismissed = localStorage.getItem('vulnxBannerDismissed');
+    const storedFilters = localStorage.getItem('vulnxFilterInfo');
 
     if (storedKey) {
       setApiKey(storedKey);
@@ -32,7 +35,56 @@ export default function MainPage() {
     } else if (!bannerDismissed) {
       setShowApiBanner(true);
     }
+
+    // Load filters from localStorage or fetch them
+    if (storedFilters) {
+      try {
+        setFilterInfo(JSON.parse(storedFilters));
+      } catch (e) {
+        console.error('Failed to parse stored filters', e);
+        fetchFilterInfo();
+      }
+    } else {
+      fetchFilterInfo();
+    }
   }, []);
+
+  const fetchFilterInfo = async () => {
+    setLoadingFilters(true);
+    try {
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+
+      if (apiKey) {
+        headers["X-API-Key"] = apiKey;
+      }
+
+      const response = await fetch('https://api.projectdiscovery.io/v2/vulnerability/filters', {
+        method: "GET",
+        headers: headers,
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Filter to only include description and examples, exclude items without examples
+        const filteredData = data
+          .filter((item: any) => item.examples && item.examples.length > 0)
+          .map((item: any) => ({
+            field: item.field,
+            description: item.description,
+            examples: item.examples,
+            enum_values: item.enum_values || undefined
+          }));
+        setFilterInfo(filteredData);
+        localStorage.setItem('vulnxFilterInfo', JSON.stringify(filteredData));
+      }
+    } catch (err) {
+      console.error('Failed to fetch filter information', err);
+    } finally {
+      setLoadingFilters(false);
+    }
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +121,7 @@ export default function MainPage() {
         } else if (response.status >= 500) {
           throw new Error("Server error. The API service is temporarily unavailable. Please try again later.");
         } else {
-          throw new Error(`Search failed (${response.status}). Please try again or contact support.`);
+          throw new Error(`Search failed (${response.status}). Please check your query.`);
         }
       }
 
@@ -182,12 +234,12 @@ export default function MainPage() {
               )}
 
               {/* Search Section */}
-              <Card className="border-slate-200 dark:border-slate-800">
+              <Card className="border-neutral-200 dark:border-neutral-800">
                 <CardContent className="pt-6">
                   <div className="flex flex-col gap-4">
                     <div className="flex flex-col sm:flex-row gap-3">
                       <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400" />
                         <Input
                           id="searchInput"
                           type="text"
@@ -205,8 +257,8 @@ export default function MainPage() {
                           size="default"
                           onClick={() => setShowFilters(!showFilters)}
                         >
-                          <Filter className="h-4 w-4" />
-                          Filters
+                          <Info className="h-4 w-4" />
+                          Query Info
                         </Button>
                         
                         <Button
@@ -220,24 +272,62 @@ export default function MainPage() {
                       </div>
                     </div>
 
-                    {/* Filter Panel */}
+                    {/* Query Info Panel */}
                     {showFilters && (
-                      <Card className="border-slate-200 dark:border-slate-800">
+                      <Card className="border-neutral-200 dark:border-neutral-800">
                         <CardHeader>
-                          <CardTitle className="text-base">Filters</CardTitle>
+                          <CardTitle className="text-base">Query Filters & Syntax</CardTitle>
+                          <CardDescription className="text-sm">
+                            Use these filters to refine your search queries. Combine filters with <code className="px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 font-mono text-xs">&&</code> (AND) or <code className="px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 font-mono text-xs">||</code> (OR)
+                          </CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <div className="flex flex-wrap gap-2">
-                            <Badge variant="outline" className="cursor-pointer hover:bg-slate-100">
-                              Critical Severity
-                            </Badge>
-                            <Badge variant="outline" className="cursor-pointer hover:bg-slate-100">
-                              High Severity
-                            </Badge>
-                            <Badge variant="outline" className="cursor-pointer hover:bg-slate-100">
-                              Recent (30 days)
-                            </Badge>
-                          </div>
+                          {loadingFilters ? (
+                            <div className="flex items-center justify-center py-8">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                            </div>
+                          ) : (
+                            <div className="space-y-4 max-h-96 overflow-y-auto">
+                              {filterInfo.map((filter, idx) => (
+                                <div key={idx} className="border-b border-neutral-200 dark:border-neutral-700 pb-4 last:border-0">
+                                  <div className="mb-2">
+                                    <span className="font-mono text-sm font-semibold text-[#5E81AC]">{filter.field}</span>
+                                    <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">{filter.description}</p>
+                                  </div>
+                                  {filter.enum_values && filter.enum_values.length > 0 && (
+                                    <div className="mb-2">
+                                      <p className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 mb-1">Allowed values:</p>
+                                      <div className="flex flex-wrap gap-1">
+                                        {filter.enum_values.map((enumVal, enumIdx) => (
+                                          <span 
+                                            key={enumIdx} 
+                                            className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-mono"
+                                          >
+                                            {enumVal}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  <div>
+                                    <p className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 mb-1">Examples:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {filter.examples.map((example, exIdx) => (
+                                        <Badge 
+                                          key={exIdx} 
+                                          variant="outline" 
+                                          className="cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 font-mono text-xs"
+                                          onClick={() => setQuery(example)}
+                                        >
+                                          {example}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     )}
@@ -252,7 +342,7 @@ export default function MainPage() {
                     <CardContent className="py-12">
                       <div className="flex flex-col items-center justify-center gap-3">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">Loading results...</p>
+                        <p className="text-sm text-neutral-600 dark:text-neutral-400">Loading results...</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -271,8 +361,8 @@ export default function MainPage() {
                   <Card>
                     <CardContent className="py-12">
                       <div className="flex flex-col items-center justify-center gap-3">
-                        <Search className="h-8 w-8 text-slate-400" />
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                        <Search className="h-8 w-8 text-neutral-400" />
+                        <p className="text-sm text-neutral-600 dark:text-neutral-400">
                           No results found. Try searching for a vulnerability.
                         </p>
                       </div>
@@ -288,42 +378,91 @@ export default function MainPage() {
                   return (
                     <div className="space-y-4">
                       {/* Description */}
-                      <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-                        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Description</h4>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                      <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                        <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Description</h4>
+                        <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
                           {result.description}
                         </p>
                       </div>
 
+                      {/* Impact & Remediation */}
+                      {(result.impact || result.remediation || result.requirements) && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {result.impact && (
+                            <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                              <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Impact</h4>
+                              <p className="text-sm text-neutral-900 dark:text-neutral-100 leading-relaxed">{result.impact}</p>
+                            </div>
+                          )}
+                          {result.remediation && (
+                            <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                              <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Remediation</h4>
+                              <p className="text-sm text-neutral-900 dark:text-neutral-100 leading-relaxed">{result.remediation}</p>
+                            </div>
+                          )}
+                          {result.requirements && (
+                            <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700 md:col-span-2">
+                              <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Requirements</h4>
+                              <p className="text-sm text-neutral-900 dark:text-neutral-100 leading-relaxed">{result.requirements}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Details Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {result.vendor && (
-                          <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-                            <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Vendor</h4>
-                            <p className="text-sm text-slate-900 dark:text-slate-100 font-medium">{result.vendor}</p>
+                          <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                            <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Vendor</h4>
+                            <p className="text-sm text-neutral-900 dark:text-neutral-100 font-medium">{result.vendor}</p>
                           </div>
                         )}
                         {result.product && (
-                          <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-                            <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Product</h4>
-                            <p className="text-sm text-slate-900 dark:text-slate-100 font-medium">{result.product}</p>
+                          <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                            <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Product</h4>
+                            <p className="text-sm text-neutral-900 dark:text-neutral-100 font-medium">{result.product}</p>
                           </div>
                         )}
-                        {result.vector && (
-                          <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-200 dark:border-slate-700 md:col-span-2">
-                            <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Attack Vector (CVSS)</h4>
-                            <p className="text-sm text-slate-900 dark:text-slate-100 font-mono">{result.vector}</p>
+                        {result.vulnerabilityType && (
+                          <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                            <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Type</h4>
+                            <p className="text-sm text-neutral-900 dark:text-neutral-100 font-medium capitalize">{result.vulnerabilityType.replace(/_/g, ' ')}</p>
                           </div>
                         )}
                       </div>
 
+                      {/* Security Attributes */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                          <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Patch Available</h4>
+                          <p className="text-sm text-neutral-900 dark:text-neutral-100 font-semibold">{result.isPatchAvailable ? '✓ Yes' : '✗ No'}</p>
+                        </div>
+                        <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                          <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Attributes</h4>
+                          <div className="flex flex-wrap gap-1">
+                            {result.isExploitSeen && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-[#BF616A] text-white">Exploit Seen</span>}
+                            {result.isRemote && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-[#5E81AC] text-white">Remote</span>}
+                            {result.isAuth && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-[#D08770] text-white">Auth</span>}
+                            {result.isTemplate && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-[#A3BE8C] text-white">Template</span>}
+                            {!result.isExploitSeen && !result.isRemote && !result.isAuth && !result.isTemplate && <span className="text-xs text-neutral-500">None</span>}
+                          </div>
+                        </div>
+                      </div>
+
+                      {result.vector && (
+                        <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                          <h4 className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide mb-1">Attack Vector (CVSS)</h4>
+                          <p className="text-sm text-neutral-900 dark:text-neutral-100 font-mono">{result.vector}</p>
+                        </div>
+                      )}
+
                       {/* Weaknesses */}
                       {result.weaknesses.length > 0 && (
-                        <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-                          <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Weaknesses (CWE)</h4>
+                        <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                          <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">Weaknesses (CWE)</h4>
                           <div className="flex flex-wrap gap-2">
                             {result.weaknesses.map((weakness, idx) => (
-                              <span key={idx} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                              <span key={idx} className="inline-flex items-center px-3 py-1 rounded-md text-xs font-semibold bg-[#EBCB8B] text-[#5A4A1F] dark:bg-[#EBCB8B] dark:text-[#2D250F]">
                                 {weakness}
                               </span>
                             ))}
@@ -331,21 +470,45 @@ export default function MainPage() {
                         </div>
                       )}
 
+                      {/* PoC URLs */}
+                      {result.pocUrls.length > 0 && (
+                        <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                          <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-3">Proof of Concept (PoC)</h4>
+                          <ul className="space-y-2">
+                            {result.pocUrls.map((poc, idx) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <svg className="w-4 h-4 text-[#BF616A] mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <a 
+                                  href={poc} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-sm text-[#5E81AC] dark:text-[#5E81AC] hover:text-[#4C6A94] dark:hover:text-[#88C0D0] hover:underline break-all font-medium transition-colors"
+                                >
+                                  {poc}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
                       {/* References */}
                       {result.references.length > 0 && (
-                        <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-                          <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">References</h4>
+                        <div className="bg-white dark:bg-neutral-900 rounded-lg p-4 border border-neutral-200 dark:border-neutral-700">
+                          <h4 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-3">References</h4>
                           <ul className="space-y-2">
                             {result.references.slice(0, 5).map((ref, idx) => (
                               <li key={idx} className="flex items-start gap-2">
-                                <svg className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4 text-[#5E81AC] mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                 </svg>
                                 <a 
                                   href={ref} 
                                   target="_blank" 
                                   rel="noopener noreferrer" 
-                                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all"
+                                  className="text-sm text-[#5E81AC] dark:text-[#5E81AC] hover:text-[#4C6A94] dark:hover:text-[#88C0D0] hover:underline break-all font-medium transition-colors"
                                 >
                                   {ref}
                                 </a>
@@ -364,7 +527,7 @@ export default function MainPage() {
 
               {/* Settings Tab */}
               <TabsContent value="settings" className="space-y-6">
-                <Card className="border-slate-200 dark:border-slate-800">
+                <Card className="border-neutral-200 dark:border-neutral-800">
                   <CardHeader className="pb-4">
                     <div className="space-y-1.5">
                       <CardTitle className="text-xl">API Configuration</CardTitle>
@@ -375,7 +538,7 @@ export default function MainPage() {
                   </CardHeader>
                   <CardContent className="space-y-5">
                     <div className="space-y-3">
-                      <label htmlFor="apiKeyInput" className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      <label htmlFor="apiKeyInput" className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
                         API Key
                       </label>
                       <Input
@@ -386,13 +549,13 @@ export default function MainPage() {
                         onChange={(e) => setApiKey(e.target.value)}
                         className="font-mono text-sm"
                       />
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">
                         Get your API key from{' '}
                         <a 
                           href="https://cloud.projectdiscovery.io" 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                          className="text-[#5E81AC] dark:text-[#5E81AC] hover:text-[#4C6A94] dark:hover:text-[#88C0D0] hover:underline font-medium transition-colors"
                         >
                           ProjectDiscovery Cloud
                         </a>
@@ -426,6 +589,47 @@ export default function MainPage() {
                     </Button>
                   </CardContent>
                 </Card>
+
+                {/* Query Filters Management */}
+                <Card className="border-neutral-200 dark:border-neutral-800">
+                  <CardHeader className="pb-4">
+                    <div className="space-y-1.5">
+                      <CardTitle className="text-xl">Query Filters</CardTitle>
+                      <CardDescription className="text-sm">
+                        Manage available query filters and syntax information
+                      </CardDescription>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700">
+                      <Info className="h-5 w-5 text-neutral-600 dark:text-neutral-400 flex-shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                          Filter information cached locally
+                        </p>
+                        <p className="text-xs text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                          Query filters are fetched from the API and stored in your browser for quick access. Click refresh to update with the latest filters.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      onClick={fetchFilterInfo} 
+                      disabled={loadingFilters}
+                      variant="outline" 
+                      className="w-full"
+                    >
+                      <Filter className="h-4 w-4 mr-2" />
+                      {loadingFilters ? 'Refreshing...' : 'Refresh Filter List'}
+                    </Button>
+                    
+                    {filterInfo.length > 0 && (
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
+                        {filterInfo.length} filters available
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
         </div>
@@ -434,7 +638,7 @@ export default function MainPage() {
       {/* Footer */}
       <footer className="footer">
         <div className="footer-container">
-          <p>&copy; 2025 Vulnx Web by Benjamin. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Vulnx Web. All rights reserved.</p>
           <p className="footer-links">
             Powered by <a href="https://github.com/projectdiscovery/cvemap" target="_blank" rel="noopener noreferrer">ProjectDiscovery Vulnerability API</a>
             {' • '}

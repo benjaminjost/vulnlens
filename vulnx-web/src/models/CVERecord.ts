@@ -16,6 +16,15 @@ export class CVERecord {
   references: string[];
   patches: string[];
   pocUrls: string[];
+  impact: string | null;
+  remediation: string | null;
+  requirements: string | null;
+  isPatchAvailable: boolean;
+  vulnerabilityType: string | null;
+  isRemote: boolean;
+  isAuth: boolean;
+  isExploitSeen: boolean;
+  isTemplate: boolean;
 
   constructor({
     cve_id,
@@ -32,7 +41,15 @@ export class CVERecord {
     weaknesses = [],
     citations = [],
     remediation,
-    pocs = []
+    pocs = [],
+    impact,
+    requirements,
+    is_patch_available,
+    vulnerability_type,
+    is_remote,
+    is_auth,
+    is_exploit_seen,
+    is_template
   }: Record<string, unknown>) {
     this.cveId = typeof cve_id === 'string' ? cve_id : '';
     this.name = typeof name === 'string' ? name : '';
@@ -82,5 +99,16 @@ export class CVERecord {
       }
       return String(p);
     });
+    
+    // Additional fields
+    this.impact = typeof impact === 'string' ? impact : null;
+    this.remediation = typeof remediation === 'string' ? remediation : null;
+    this.requirements = typeof requirements === 'string' ? requirements : null;
+    this.isPatchAvailable = typeof is_patch_available === 'boolean' ? is_patch_available : false;
+    this.vulnerabilityType = typeof vulnerability_type === 'string' ? vulnerability_type : null;
+    this.isRemote = typeof is_remote === 'boolean' ? is_remote : false;
+    this.isAuth = typeof is_auth === 'boolean' ? is_auth : false;
+    this.isExploitSeen = typeof is_exploit_seen === 'boolean' ? is_exploit_seen : false;
+    this.isTemplate = typeof is_template === 'boolean' ? is_template : false;
   }
 }
