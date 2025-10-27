@@ -1,0 +1,86 @@
+// Shared class definition for CVE entries
+export class CVERecord {
+  cveId: string;
+  name: string;
+  description: string;
+  score: number;
+  severity: string;
+  ageInDays: number;
+  hasPoC: boolean;
+  publishedAt: Date;
+  updatedAt: Date;
+  product: string | null;
+  vendor: string | null;
+  vector: string | null;
+  weaknesses: string[];
+  references: string[];
+  patches: string[];
+  pocUrls: string[];
+
+  constructor({
+    cve_id,
+    name,
+    description,
+    cvss_score,
+    severity,
+    age_in_days,
+    is_poc,
+    cve_created_at,
+    cve_updated_at,
+    affected_products = [],
+    cvss_metrics,
+    weaknesses = [],
+    citations = [],
+    remediation,
+    pocs = []
+  }: Record<string, unknown>) {
+    this.cveId = typeof cve_id === 'string' ? cve_id : '';
+    this.name = typeof name === 'string' ? name : '';
+    this.description = typeof description === 'string' ? description : '';
+    this.score = typeof cvss_score === 'number' ? cvss_score : 0;
+    this.severity = typeof severity === 'string' ? severity : '';
+    this.ageInDays = typeof age_in_days === 'number' ? age_in_days : 0;
+    this.hasPoC = typeof is_poc === 'boolean' ? is_poc : false;
+    this.publishedAt = cve_created_at ? new Date(cve_created_at as string) : new Date();
+    this.updatedAt = cve_updated_at ? new Date(cve_updated_at as string) : new Date();
+    
+    // Extract product and vendor from affected_products array
+    const affectedProductsArray = Array.isArray(affected_products) ? affected_products : [];
+    const firstProduct = affectedProductsArray.length > 0 ? affectedProductsArray[0] as Record<string, unknown> : null;
+    this.product = firstProduct && typeof firstProduct.product === 'string' ? firstProduct.product : null;
+    this.vendor = firstProduct && typeof firstProduct.vendor === 'string' ? firstProduct.vendor : null;
+    
+    // Extract CVSS vector string
+    this.vector = typeof cvss_metrics === 'string' ? cvss_metrics : null;
+    
+    // Extract weakness names
+    const weaknessesArray = Array.isArray(weaknesses) ? weaknesses : [];
+    this.weaknesses = weaknessesArray.map((w: any) => {
+      if (typeof w === 'object' && w !== null && typeof w.cwe_name === 'string') {
+        return w.cwe_name;
+      }
+      return String(w);
+    });
+    
+    // Extract citation URLs
+    const citationsArray = Array.isArray(citations) ? citations : [];
+    this.references = citationsArray.map((c: any) => {
+      if (typeof c === 'object' && c !== null && typeof c.url === 'string') {
+        return c.url;
+      }
+      return String(c);
+    });
+    
+    // Extract remediation as patch info
+    this.patches = typeof remediation === 'string' ? [remediation] : [];
+    
+    // Extract PoC URLs
+    const pocsArray = Array.isArray(pocs) ? pocs : [];
+    this.pocUrls = pocsArray.map((p: any) => {
+      if (typeof p === 'object' && p !== null && typeof p.url === 'string') {
+        return p.url;
+      }
+      return String(p);
+    });
+  }
+}
