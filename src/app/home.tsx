@@ -533,7 +533,7 @@ export default function MainPage() {
                                     Exploit Seen
                                   </span>
                                 )}
-                        {result.isRemote && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-primary text-primary-foreground">Remote</span>}
+                                {result.isRemote && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-primary text-primary-foreground">Remote</span>}
                                 {result.isAuth && (
                                   <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-status-high text-status-high-foreground">
                                     Auth
@@ -630,7 +630,7 @@ export default function MainPage() {
                                   href={`https://github.com/projectdiscovery/nuclei-templates/blob/main/${result.uri}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                className="text-sm text-primary hover:text-primary/80 hover:underline break-all font-medium transition-colors"
+                                  className="text-sm text-primary hover:text-primary/80 hover:underline break-all font-medium transition-colors"
                                 >
                                   {`https://github.com/projectdiscovery/nuclei-templates/blob/main/${result.uri}`}
                                 </a>

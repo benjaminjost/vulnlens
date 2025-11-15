@@ -68,14 +68,21 @@ export function DataTable<TData, TValue>({
   })
 
   return (
-    <div className="rounded-xl border border-border shadow-lg overflow-hidden bg-card text-card-foreground">
+    <div className="rounded-2xl border border-border/70 shadow-lg overflow-hidden bg-card text-card-foreground">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
                 return (
-                  <TableHead key={header.id}>
+                  <TableHead
+                    key={header.id}
+                    style={{
+                      width: header.column.getSize
+                        ? `${header.column.getSize()}px`
+                        : undefined,
+                    }}
+                  >
                     {header.isPlaceholder ? null : (
                       <div
                         className={
@@ -118,7 +125,14 @@ export function DataTable<TData, TValue>({
                   className="cursor-pointer"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      key={cell.id}
+                      style={{
+                        width: cell.column.getSize
+                          ? `${cell.column.getSize()}px`
+                          : undefined,
+                      }}
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -127,9 +141,11 @@ export function DataTable<TData, TValue>({
                   ))}
                 </TableRow>
                 {row.getIsExpanded() && renderSubComponent && (
-                  <TableRow className="bg-secondary/60 hover:bg-secondary">
-                    <TableCell colSpan={columns.length} className="py-6">
-                      {renderSubComponent({ row })}
+                  <TableRow className="bg-secondary/60 hover:bg-secondary/60">
+                    <TableCell colSpan={columns.length} className="px-0 py-0">
+                      <div className="py-6 px-1">
+                        {renderSubComponent({ row })}
+                      </div>
                     </TableCell>
                   </TableRow>
                 )}
@@ -149,7 +165,7 @@ export function DataTable<TData, TValue>({
       </Table>
 
       {/* Pagination Controls */}
-      <div className="flex items-center justify-between px-4 py-4 border-t border-border bg-secondary/50">
+      <div className="flex items-center justify-between px-5 py-4 border-t border-border bg-secondary/40">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>
             Page {table.getState().pagination.pageIndex + 1} of{" "}
