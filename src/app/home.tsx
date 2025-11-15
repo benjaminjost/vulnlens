@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertCircle, CheckCircle2, Filter, Info, Search, Settings, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Filter, Info, Moon, Search, Settings, Sun, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { columns } from '../components/cve-columns';
 import { DataTable } from '../components/data-table';
 import { CVERecord } from '../models/CVERecord';
+
+type ThemeMode = 'light' | 'dark';
 
 export default function MainPage() {
   const [results, setResults] = useState<CVERecord[]>([]);
@@ -22,6 +24,44 @@ export default function MainPage() {
   const [filterInfo, setFilterInfo] = useState<Array<{ field: string; description: string; examples: string[]; enum_values?: string[] }>>([]);
   const [loadingFilters, setLoadingFilters] = useState(false);
   const [filterSearchTerm, setFilterSearchTerm] = useState('');
+  const [theme, setTheme] = useState<ThemeMode>('light');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const storedTheme = localStorage.getItem('vulnxTheme') as ThemeMode | null;
+    const initialTheme = storedTheme ?? (mediaQuery.matches ? 'dark' : 'light');
+    setTheme(initialTheme);
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      if (!localStorage.getItem('vulnxTheme')) {
+        setTheme(event.matches ? 'dark' : 'light');
+      }
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+    setMounted(true);
+
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [theme, mounted]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('vulnxTheme', next);
+      return next;
+    });
+  };
 
   useEffect(() => {
     const storedKey = localStorage.getItem('vulnxApiKey');
@@ -157,6 +197,26 @@ export default function MainPage() {
             <h1 className="text-2xl font-semibold tracking-tight text-primary">Vulnx</h1>
             <Badge variant="secondary" className="text-xs">Web</Badge>
           </div>
+          {mounted && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={theme === 'dark'}
+                onClick={toggleTheme}
+                className="flex items-center gap-2 rounded-full border border-border bg-card/80 px-3 py-1 text-muted-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                <Moon className={`h-3.5 w-3.5 ${theme === 'dark' ? 'text-primary' : 'text-muted-foreground/70'}`} />
+                <div className={`relative h-5 w-11 rounded-full transition-colors ${theme === 'dark' ? 'bg-primary/40' : 'bg-muted'}`}>
+                  <span
+                    className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-card shadow transition-transform ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'}`}
+                  />
+                </div>
+                <Sun className={`h-3.5 w-3.5 ${theme === 'light' ? 'text-primary' : 'text-muted-foreground/70'}`} />
+                <span className="sr-only">Toggle color theme</span>
+              </button>
+            </div>
+          )}
         </div>
       </header>
 

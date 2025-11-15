@@ -95,8 +95,7 @@
   --radius: 0.5rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+ .dark {
     --color-primary: oklch(0.65 0.18 250);
     --color-primary-foreground: oklch(0.98 0.01 250);
     
@@ -126,8 +125,15 @@
     --color-ring: oklch(0.65 0.18 250);
     
     --color-neutral-950: oklch(0.10 0 0);
+    --color-status-critical: oklch(0.48 0.20 25);
+    --color-status-critical-foreground: oklch(0.96 0.01 250);
+    --color-status-high: oklch(0.58 0.16 70);
+    --color-status-high-foreground: oklch(0.96 0.01 250);
+    --color-status-medium: oklch(0.70 0.10 95);
+    --color-status-medium-foreground: oklch(0.16 0.02 95);
+    --color-status-low: oklch(0.46 0.08 165);
+    --color-status-low-foreground: oklch(0.95 0.02 165);
   }
-}
 
 @layer base {
   * {

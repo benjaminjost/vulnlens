@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
@@ -19,8 +20,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
+        <Script id="theme-pref" strategy="beforeInteractive">
+          {`(function(){try{var s='vulnxTheme';var stored=localStorage.getItem(s);var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var theme=stored|| (prefersDark?'dark':'light');if(theme==='dark'){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}catch(e){}})();`}
+        </Script>
         {children}
       </body>
     </html>
