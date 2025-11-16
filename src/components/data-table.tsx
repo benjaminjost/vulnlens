@@ -42,7 +42,7 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   renderSubComponent,
-}: DataTableProps<TData, TValue>) {
+}: Readonly<DataTableProps<TData, TValue>>) {
   const [expanded, setExpanded] = React.useState<ExpandedState>({})
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [pagination, setPagination] = React.useState<PaginationState>({
@@ -83,32 +83,43 @@ export function DataTable<TData, TValue>({
                         : undefined,
                     }}
                   >
-                    {header.isPlaceholder ? null : (
-                      <div
-                        className={
-                          header.column.getCanSort()
-                            ? "flex items-center cursor-pointer select-none"
-                            : ""
-                        }
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                        {header.column.getCanSort() && (
-                          <span className="ml-2">
-                            {header.column.getIsSorted() === "asc" ? (
-                              <ArrowUp className="h-4 w-4" />
-                            ) : header.column.getIsSorted() === "desc" ? (
-                              <ArrowDown className="h-4 w-4" />
-                            ) : (
-                              <ArrowUpDown className="h-4 w-4 opacity-50" />
+                    {(() => {
+                      if (header.isPlaceholder) {
+                        return null
+                      }
+                      
+                      if (header.column.getCanSort()) {
+                        return (
+                          <button
+                            type="button"
+                            className="flex items-center cursor-pointer select-none w-full text-left"
+                            onClick={header.column.getToggleSortingHandler()}
+                          >
+                            {flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
                             )}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                            <span className="ml-2">
+                              {(() => {
+                                const sortDirection = header.column.getIsSorted()
+                                if (sortDirection === "asc") {
+                                  return <ArrowUp className="h-4 w-4" />
+                                }
+                                if (sortDirection === "desc") {
+                                  return <ArrowDown className="h-4 w-4" />
+                                }
+                                return <ArrowUpDown className="h-4 w-4 opacity-50" />
+                              })()}
+                            </span>
+                          </button>
+                        )
+                      }
+                      
+                      return flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )
+                    })()}
                   </TableHead>
                 )
               })}

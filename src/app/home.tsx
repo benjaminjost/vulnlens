@@ -11,10 +11,10 @@ import { DataTable } from '../components/data-table';
 import { CVERecord } from '../models/CVERecord';
 
 const sanitizeQueryInput = (value: string) =>
-  value.replace(/[^\w\s\-.:/"()@]/g, "").replace(/\s+/g, " ").slice(0, 200);
+  value.replaceAll(/[^\w\s\-.:/"()@]/g, "").replaceAll(/\s+/g, " ").slice(0, 200);
 
 const sanitizeApiKeyInput = (value: string) =>
-  value.replace(/[^A-Za-z0-9\-_\.]/g, "").slice(0, 128);
+  value.replaceAll(/[^A-Za-z0-9\-_.]/g, "").slice(0, 128);
 
 type ThemeMode = 'light' | 'dark';
 
@@ -34,7 +34,7 @@ export default function MainPage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const mediaQuery = globalThis.matchMedia('(prefers-color-scheme: dark)');
     const storedTheme = localStorage.getItem('vulnxTheme') as ThemeMode | null;
     const initialTheme = storedTheme ?? (mediaQuery.matches ? 'dark' : 'light');
     setTheme(initialTheme);
@@ -526,7 +526,7 @@ export default function MainPage() {
                             {result.vulnerabilityType && (
                               <div className="bg-card rounded-lg p-4 border border-border">
                                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Type</h4>
-                                <p className="text-sm text-foreground font-medium capitalize">{result.vulnerabilityType.replace(/_/g, ' ')}</p>
+                                <p className="text-sm text-foreground font-medium capitalize">{result.vulnerabilityType.replaceAll('_', ' ')}</p>
                               </div>
                             )}
                             {result.publishedAt && (
