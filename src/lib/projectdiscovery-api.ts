@@ -37,7 +37,6 @@ export async function searchCVE(options: SearchOptions): Promise<SearchResult> {
       "Content-Type": "application/json",
     };
 
-    // Get API key from localStorage
     const apiKey =
       globalThis.window === undefined
         ? null

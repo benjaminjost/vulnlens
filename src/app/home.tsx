@@ -56,14 +56,12 @@ export default function MainPage() {
   const [loadingFilters, setLoadingFilters] = useState(false);
   const [filterSearchTerm, setFilterSearchTerm] = useState("");
 
-  // Handle query parameter on mount
   useEffect(() => {
     const qParam = searchParams.get("q");
     if (qParam) {
       try {
         const decodedQuery = atob(qParam);
         setQuery(sanitizeQueryInput(decodedQuery));
-        // Auto-trigger search after setting the query
         setTimeout(() => {
           const cleanedQuery = sanitizeQueryInput(decodedQuery).trim();
           if (cleanedQuery) {
@@ -140,7 +138,6 @@ export default function MainPage() {
       setQuery(cleanedQuery);
     }
 
-    // Update URL with base64-encoded query
     const encodedQuery = btoa(cleanedQuery);
     router.push(`/?q=${encodedQuery}`);
 
