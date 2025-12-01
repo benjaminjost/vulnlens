@@ -1,5 +1,4 @@
 "use client";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,20 +9,22 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { fetchFilters, searchCVE, type FilterInfo } from "@/lib/projectdiscovery-api";
 import {
   AlertCircle,
   CheckCircle2,
   Filter,
   Info,
-  Moon,
   Search,
   Settings,
-  Sun,
   X,
 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { columns } from "../components/cve-columns";
 import { DataTable } from "../components/data-table";
+import Footer from "../components/footer";
+import Header from "../components/header";
 import { CVERecord } from "../models/CVERecord";
 
 const sanitizeQueryInput = (value: string) =>
@@ -35,9 +36,9 @@ const sanitizeQueryInput = (value: string) =>
 const sanitizeApiKeyInput = (value: string) =>
   value.replaceAll(/[^A-Za-z0-9\-_.]/g, "").slice(0, 128);
 
-type ThemeMode = "light" | "dark";
-
 export default function MainPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [results, setResults] = useState<CVERecord[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -46,54 +47,29 @@ export default function MainPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showApiBanner, setShowApiBanner] = useState(false);
   const [apiKeySaved, setApiKeySaved] = useState(false);
-  const [filterInfo, setFilterInfo] = useState<
-    Array<{
-      field: string;
-      description: string;
-      examples: string[];
-      enum_values?: string[];
-    }>
-  >([]);
+  const [filterInfo, setFilterInfo] = useState<FilterInfo[]>([]);
   const [loadingFilters, setLoadingFilters] = useState(false);
   const [filterSearchTerm, setFilterSearchTerm] = useState("");
-  const [theme, setTheme] = useState<ThemeMode>("light");
-  const [mounted, setMounted] = useState(false);
 
+  // Handle query parameter on mount
   useEffect(() => {
-    const mediaQuery = globalThis.matchMedia("(prefers-color-scheme: dark)");
-    const storedTheme = localStorage.getItem("vulnxTheme") as ThemeMode | null;
-    const initialTheme = storedTheme ?? (mediaQuery.matches ? "dark" : "light");
-    setTheme(initialTheme);
-
-    const handleChange = (event: MediaQueryListEvent) => {
-      if (!localStorage.getItem("vulnxTheme")) {
-        setTheme(event.matches ? "dark" : "light");
+    const qParam = searchParams.get("q");
+    if (qParam) {
+      try {
+        const decodedQuery = atob(qParam);
+        setQuery(sanitizeQueryInput(decodedQuery));
+        // Auto-trigger search after setting the query
+        setTimeout(() => {
+          const cleanedQuery = sanitizeQueryInput(decodedQuery).trim();
+          if (cleanedQuery) {
+            performSearch(cleanedQuery);
+          }
+        }, 100);
+      } catch (e) {
+        console.error("Failed to decode query parameter", e);
       }
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-    setMounted(true);
-
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-    const root = document.documentElement;
-    if (theme === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
     }
-  }, [theme, mounted]);
-
-  const toggleTheme = () => {
-    setTheme((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
-      localStorage.setItem("vulnxTheme", next);
-      return next;
-    });
-  };
+  }, [searchParams]);
 
   useEffect(() => {
     const storedKey = localStorage.getItem("vulnxApiKey");
@@ -120,37 +96,35 @@ export default function MainPage() {
 
   const fetchFilterInfo = async () => {
     setLoadingFilters(true);
-    try {
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-      };
 
-      const response = await fetch(
-        "https://api.projec.tdiscovery.io/v2/vulnerability/filters",
-        {
-          method: "GET",
-          headers: headers,
-        },
-      );
+    const result = await fetchFilters();
 
-      if (response.ok) {
-        const data = await response.json();
-        const filteredData = data
-          .filter((item: any) => item.examples && item.examples.length > 0)
-          .map((item: any) => ({
-            field: item.field,
-            description: item.description,
-            examples: item.examples,
-            enum_values: item.enum_values || undefined,
-          }));
-        setFilterInfo(filteredData);
-        localStorage.setItem("vulnxFilterInfo", JSON.stringify(filteredData));
-      }
-    } catch (err) {
-      console.error("Failed to fetch filter information", err);
-    } finally {
-      setLoadingFilters(false);
+    if (result.success && result.data) {
+      setFilterInfo(result.data);
+      localStorage.setItem("vulnxFilterInfo", JSON.stringify(result.data));
+    } else if (result.error) {
+      console.error("Failed to fetch filter information", result.error);
     }
+
+    setLoadingFilters(false);
+  };
+
+  const performSearch = async (searchQuery: string) => {
+    setLoading(true);
+    setError(null);
+    setResults([]);
+
+    const result = await searchCVE({
+      query: searchQuery,
+    });
+
+    if (result.success && result.data) {
+      setResults(result.data);
+    } else if (result.error) {
+      setError(result.error);
+    }
+
+    setLoading(false);
   };
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -161,74 +135,11 @@ export default function MainPage() {
       setQuery(cleanedQuery);
     }
 
-    setLoading(true);
-    setError(null);
-    setResults([]);
+    // Update URL with base64-encoded query
+    const encodedQuery = btoa(cleanedQuery);
+    router.push(`/?q=${encodedQuery}`);
 
-    try {
-      let searchQuery = `(${cleanedQuery})`;
-
-      const encodedQuery = encodeURIComponent(searchQuery);
-      const apiUrl = `https://api.projectdiscovery.io/v2/vulnerability/search?q=${encodedQuery}`;
-
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-      };
-
-      if (apiKey) {
-        headers["X-API-Key"] = apiKey;
-      }
-
-      const response = await fetch(apiUrl, {
-        method: "GET",
-        headers: headers,
-      });
-
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          throw new Error(
-            "Invalid or missing API key. Please check your API configuration in Settings.",
-          );
-        } else if (response.status === 429) {
-          throw new Error(
-            "Rate limit exceeded. Configure an API key in Settings for higher rate limits, or wait a moment and try again.",
-          );
-        } else if (response.status >= 500) {
-          throw new Error(
-            "Server error. The API service is temporarily unavailable. Please try again later.",
-          );
-        } else {
-          throw new Error(
-            `Search failed (${response.status}). Please check your query.`,
-          );
-        }
-      }
-
-      const data = await response.json();
-
-      if (data && typeof data === "object" && Array.isArray(data.results)) {
-        const cveRecords = data.results.map((item: any) => new CVERecord(item));
-        setResults(cveRecords);
-
-        if (cveRecords.length === 0) {
-          throw new Error("No results found.");
-        }
-      } else {
-        throw new Error("Invalid response format from API.");
-      }
-    } catch (err) {
-      if (err instanceof Error) {
-        if (err.message === "Failed to fetch") {
-          setError(
-            "Unable to connect to the API. Please check your internet connection and try again.",
-          );
-        } else {
-          setError(err.message);
-        }
-      }
-    } finally {
-      setLoading(false);
-    }
+    await performSearch(cleanedQuery);
   };
 
   const handleApiKeySave = () => {
@@ -247,60 +158,21 @@ export default function MainPage() {
     }
   };
 
+  const handleApiKeyDelete = () => {
+    localStorage.removeItem("vulnxApiKey");
+    setApiKey("");
+    setApiKeySaved(false);
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight text-primary">
-              Vulnx
-            </h1>
-            <Badge variant="secondary" className="text-xs">
-              Web
-            </Badge>
-          </div>
-          {mounted && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={theme === "dark"}
-                onClick={toggleTheme}
-                className="flex items-center gap-1 rounded-full border border-border bg-card/80 px-1 py-1 text-muted-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              >
-                <span
-                  className={`flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium transition-colors ${
-                    theme === "light"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground/70"
-                  }`}
-                >
-                  <Sun className="h-3.5 w-3.5" />
-                  Light
-                </span>
-                <span
-                  className={`flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium transition-colors ${
-                    theme === "dark"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground/70"
-                  }`}
-                >
-                  <Moon className="h-3.5 w-3.5" />
-                  Dark
-                </span>
-                <span className="sr-only">Toggle color theme</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </header>
+      <Header />
 
       {/* Main content */}
       <main className="flex-1">
         <div className="mx-auto w-full max-w-5xl px-6 py-6">
-          {mounted && (
-            <Tabs defaultValue="explore" className="w-full">
+          <Tabs defaultValue="explore" className="w-full">
               <TabsList className="inline-flex mb-4">
                 <TabsTrigger
                   value="explore"
@@ -968,10 +840,21 @@ export default function MainPage() {
                       </div>
                     )}
 
-                    <Button onClick={handleApiKeySave} className="w-full">
-                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                      Save Configuration
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button onClick={handleApiKeySave} className="flex-1">
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Save Configuration
+                      </Button>
+                      {apiKey && (
+                        <Button 
+                          onClick={handleApiKeyDelete} 
+                          variant="destructive"
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Delete
+                        </Button>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -1019,35 +902,11 @@ export default function MainPage() {
                 </Card>
               </TabsContent>
             </Tabs>
-          )}
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-card">
-        <div className="mx-auto w-full max-w-5xl px-6 py-6 text-center text-xs sm:text-sm text-muted-foreground">
-          <p className="text-xs sm:text-sm">
-            Powered by{" "}
-            <a
-              href="https://github.com/projectdiscovery/cvemap"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-primary hover:text-primary/80 hover:underline"
-            >
-              ProjectDiscovery Vulnerability API
-            </a>
-            <span className="mx-1 text-muted-foreground/70">•</span>
-            <a
-              href="https://github.com/benjaminjost/vulnx-web"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-primary hover:text-primary/80 hover:underline"
-            >
-              View Source on GitHub
-            </a>
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
