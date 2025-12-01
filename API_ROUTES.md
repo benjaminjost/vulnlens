@@ -5,11 +5,13 @@ The application now supports the following routes:
 ## Routes
 
 ### 1. Main Page
+
 **Route:** `/`
 
 Shows the main page with the CVE search interface, including the header with Vulnx logo and light/dark theme toggle.
 
 **Example:**
+
 ```
 https://your-domain.com/
 ```
@@ -17,11 +19,13 @@ https://your-domain.com/
 ---
 
 ### 2. CVE Detail Page
+
 **Route:** `/{CVEID}`
 
 Displays a comprehensive detail page for a specific CVE by fetching data from the ProjectDiscovery API. The page includes all vulnerability information such as CVSS score, severity, description, affected products, weaknesses, PoC links, references, and more.
 
 **Features:**
+
 - Fetches CVE data from the API using the CVE ID
 - Displays complete vulnerability information
 - Shows loading state while fetching data
@@ -31,15 +35,18 @@ Displays a comprehensive detail page for a specific CVE by fetching data from th
 - Clickable from the CVE ID column in the main search results table
 
 **Example:**
+
 ```
 https://your-domain.com/CVE-2023-1234
 https://your-domain.com/CVE-2024-5678
 ```
 
 **Parameters:**
+
 - `CVEID` - The CVE identifier (e.g., CVE-2023-1234)
 
 **Displayed Information:**
+
 - CVE ID, name, and description
 - CVSS score and severity badge
 - Impact, remediation, and requirements
@@ -56,27 +63,32 @@ https://your-domain.com/CVE-2024-5678
 ---
 
 ### 3. Search with Query Parameter
+
 **Route:** `/?q={base64}`
 
 Loads the main page with a pre-populated search query and automatically triggers the search. The query parameter `q` should contain a base64-encoded search string. This allows you to share direct links to specific searches.
 
 **Features:**
+
 - Automatically decodes the base64 query parameter
 - Pre-populates the search input field
 - Auto-triggers the search on page load
 - URL is updated when performing a search from the UI
 
 **Example:**
+
 ```
 https://your-domain.com/?q=cHJvZHVjdD1teXNxbA==
 ```
 
 **Parameters:**
+
 - `q` - Base64-encoded search query
 
 **How to create a shareable search link:**
 
 1. Encode your search query to base64:
+
    ```javascript
    const query = "product=mysql";
    const encoded = btoa(query);
@@ -95,7 +107,9 @@ https://your-domain.com/?q=cHJvZHVjdD1teXNxbA==
 ## Shared Components
 
 ### Header
+
 All pages include a consistent header with:
+
 - **Vulnx** logo (clickable, returns to home)
 - Light/Dark theme toggle
 - Responsive design
@@ -104,7 +118,9 @@ All pages include a consistent header with:
 The header component is located at `src/components/header.tsx` and is shared across all routes.
 
 ### Footer
+
 All pages include a consistent footer with:
+
 - Link to ProjectDiscovery Vulnerability API
 - Link to GitHub repository
 - Responsive design
@@ -116,6 +132,7 @@ The footer component is located at `src/components/footer.tsx` and is shared acr
 ## Implementation Details
 
 ### File Structure
+
 ```
 src/
 ├── app/
@@ -135,6 +152,7 @@ src/
 ```
 
 ### Technologies Used
+
 - **Next.js 16** with App Router
 - **React 19**
 - **TypeScript**
@@ -146,6 +164,7 @@ src/
 - localStorage for API key storage and theme persistence
 
 ### Key Features
+
 - **Shareable Search Links**: Search queries are encoded in the URL for easy sharing
 - **Clickable CVE IDs**: Each CVE ID in the search results table is a link with an external link icon
 - **Dynamic CVE Pages**: Individual CVE pages fetch and display complete vulnerability details

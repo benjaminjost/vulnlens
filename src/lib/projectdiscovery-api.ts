@@ -28,9 +28,7 @@ export interface FilterResult {
  * @param options - Search options including query
  * @returns Search result with CVE records or error
  */
-export async function searchCVE(
-  options: SearchOptions,
-): Promise<SearchResult> {
+export async function searchCVE(options: SearchOptions): Promise<SearchResult> {
   try {
     const encodedQuery = encodeURIComponent(`(${options.query})`);
     const apiUrl = `https://api.projectdiscovery.io/v2/vulnerability/search?q=${encodedQuery}`;
