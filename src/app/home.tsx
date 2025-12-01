@@ -226,7 +226,7 @@ export default function MainPage() {
                           id="searchInput"
                           type="text"
                           placeholder="Search vulnerabilities by product, vendor, CVE ID..."
-                          className="pl-10"
+                          className="pl-10 pr-10"
                           value={query}
                           onChange={(e) =>
                             setQuery(sanitizeQueryInput(e.target.value))
@@ -235,6 +235,15 @@ export default function MainPage() {
                             e.key === "Enter" && handleSearch(e)
                           }
                         />
+                        {query && (
+                          <button
+                            type="button"
+                            onClick={() => setQuery("")}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
 
                       <div className="flex gap-2">
