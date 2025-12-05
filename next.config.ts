@@ -45,6 +45,9 @@ if (isProd) {
 }
 
 const nextConfig: NextConfig = {
+  env: {
+    APP_VERSION: process.env.APP_VERSION || 'dev',
+  },
   async headers() {
     return [
       {
