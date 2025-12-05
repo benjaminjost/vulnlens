@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   fetchFilters,
@@ -304,8 +305,10 @@ export default function MainPage() {
                         </div>
 
                         {loadingFilters ? (
-                          <div className="flex items-center justify-center py-8">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                          <div className="space-y-3 py-4">
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-24 w-full" />
                           </div>
                         ) : (
                           <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
