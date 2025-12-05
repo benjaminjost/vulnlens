@@ -2,7 +2,7 @@
 import type { MetadataRoute } from "next";
 
 export const runtime = "edge";
-export const revalidate = 60 * 60 * 24; // 1 day
+export const revalidate = 86_400; // 1 day
 
 const baseUrl =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://vulnx.benjaminjost.com";
