@@ -486,16 +486,28 @@ export default function MainPage() {
                           {results.length} result
                           {results.length === 1 ? "" : "s"} found
                         </div>
-                        <DrawerTrigger asChild>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="gap-2 shadow-sm hidden sm:inline-flex"
-                          >
-                            <BarChart3 className="h-4 w-4" />
-                            Insights
-                          </Button>
-                        </DrawerTrigger>
+                        <div className="flex w-full sm:w-auto gap-2">
+                          <DrawerTrigger asChild>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="gap-2 shadow-sm sm:hidden w-full"
+                            >
+                              <BarChart3 className="h-4 w-4" />
+                              Insights
+                            </Button>
+                          </DrawerTrigger>
+                          <DrawerTrigger asChild>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="gap-2 shadow-sm hidden sm:inline-flex"
+                            >
+                              <BarChart3 className="h-4 w-4" />
+                              Insights
+                            </Button>
+                          </DrawerTrigger>
+                        </div>
                       </div>
 
                       <DataTable
